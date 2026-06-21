@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zap Cord - Acode</title>
+    <!-- Importa o Socket.io -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #efeae2; display: flex; flex-direction: column; height: 100vh; }
+        
+        /* Cabeçalho estilo Whatsapp */
+        header { background: #008069; color: white; padding: 15px; font-weight: bold; font-size: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        
+        /* Área das mensagens */
+        #chat-box { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        
+        /* Balões de Mensagem */
+        .message { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 15px; position: relative; word-wrap: break-word; box-shadow: 0 1px 1px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+        .message .username { font-size: 12px; font-weight: bold; color: #e53935; margin-bottom: 3px; }
+        .message .text { margin-bottom: 4px; }
+        .message .time { font-size: 10px; color: #667781; align-self: flex-end; }
+        
+        /* Minhas mensagens (Verde claro) */
+        .my-message { background: #d9fdd3; align-self: flex-end; border-top-right-radius: 0; }
+        .my-message .username { display: none; } /* Não precisa do meu nome na minha tela */
+        
+        /* Mensagens dos outros (Branco) */
+        .other-message { background: #ffffff; align-self: flex-start; border-top-left-radius: 0; }
+
+        /* Barra de digitação inferior */
+        footer { background: #f0f2f5; padding: 10px; display: flex; gap: 10px; align-items: center; }
+        input { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 15px; outline: none; }
+        button { background: #00a884; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        button:active { background: #008069; }
+    </style>
+</head>
+<body>
+
+    <header>Zap Multiplay (Acode)</header>
+
+    <div id="chat-box"></div>
+
+    <footer>
+        <input type="text" id="message-input" placeholder="Digite uma mensagem..." onkeypress="checkEnter(event)">
+        <button onclick="send()">Enviar</button>
+    </footer>
+
+    <script>
+        // Defina um nome de usuário aleatório ou mude aqui
+        const meuNome = "User_" + Math.floor(Math.random() * 1000);
+
+        // Conecta ao servidor local (Termux ou PC na mesma rede)
+        // Se testar com outro celular, mude 'localhost' para o IP do servidor
+        const socket = io('http://localhost:3000');
+        
+        const chatBox = document.getElementById('chat-box');
+        const messageInput = document.getElementById('message-input');
+
+        // Escuta novas mensagens vindas do servidor
+        socket.on('newMessage', (data) => {
+            const isMe = data.userId === socket.id;
+            
+            // Cria o balão de mensagem HTML
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message');
+            msgDiv.classList.add(isMe ? 'my-message' : 'other-message');
+
+            msgDiv.innerHTML = `
+                <span class="username">${data.username}</span>
+                <span class="text">${data.text}</span>
+                <span class="time">${data.time}</span>
+            `;
+
+            chatBox.appendChild(msgDiv);
+            
+            // Joga o chat para baixo automaticamente a cada nova mensagem
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+
+        // Função para enviar a mensagem
+        function send() {
+            const text = messageInput.value.trim();
+            if (text === '') return;
+
+            // Envia para o servidor
+            socket.emit('sendMessage', {
+                username: meuNome,
+                text: text
+            });
+
+            messageInput.value = ''; // Limpa o campo
+        }
+
+        // Permite enviar apertando "Enter" no teclado do celular
+        function checkEnter(event) {
+            if (event.key === 'Enter') {
+                send();
+            }
+        }
+    </script>
+</body>
+</html>
